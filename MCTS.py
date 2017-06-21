@@ -5,25 +5,32 @@ class MCTS:
 		self.root = Node
 
 	def Selection(self):		
-		MaxWeight = 0
-		Weight = 0
-		Index = 0
+		Weight = 0.0
+		SelectedChild = self.root
 		HasChild = False
-		if(len(self.root.children) > 0):
+
+		# Check if child nodes exist. 
+		if(len(SelectedChild.children) > 0):
 			HasChild = True
+		else:
+			HasChild = False
 
-		i = 0
-		# Temporary. Select children with biggest weights.
+		# Temporary policy: Select child with the biggest weight.
 		while(HasChild):
-			Weight = self.root.children[i].weight
+			MaxWeight = 0.0
+			for Child in SelectedChild.children:
+				Weight = Child.weight				
+				if(Weight > MaxWeight):
+					MaxWeight = Weight			
+					SelectedChild = Child
+				elif(Weight == None):
+					SelectedChild = Child
+					break					
 
-			if(Weight > MaxWeight):
-				MaxWeight = Weight			
-				Index = i
+			if(len(SelectedChild.children) == 0):
+				HasChild  = False
 
-			i += 1
-
-		return self.root.children[Index]
+		return SelectedChild
 
 
 
