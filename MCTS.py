@@ -1,5 +1,6 @@
 import Node as nd
-import TestGame as tg
+import numpy as np
+import Game1 as game
 
 class MCTS:
 	def __init__(self, Node):
@@ -16,150 +17,132 @@ class MCTS:
 		else:
 			HasChild = False
 
-		# Temporary policy: Select child with the biggest weight.
-		while(HasChild):
+		Skip = False
+		while(HasChild and not Skip):
 			MaxWeight = 0.0
+
 			for Child in SelectedChild.children:
-				Weight = Child.weight				
-				if(Weight > MaxWeight):
-					MaxWeight = Weight			
+				if(Child.visits > 0.0):
+					continue
+				else:
 					SelectedChild = Child
-				elif(Weight == None):
-					SelectedChild = Child
-					break					
+					Skip = True
+					break
+
+			if(not Skip):
+				for Child in SelectedChild.children:
+						Weight = self.EvalUTC(Child)
+						if(Weight > MaxWeight):
+							MaxWeight = Weight			
+							SelectedChild = Child
+							break					
 
 			if(len(SelectedChild.children) == 0):
 				HasChild  = False
 
+		print "Selected:",SelectedChild.state
+		SelectedChild.visits += 1.0
 		return SelectedChild
 	
-	def Expansion(Leaf):
-		if(IsTerminal((Leaf))):
+	def Expansion(self, Leaf):
+		if(self.IsTerminal((Leaf))):
 			return Leaf
 		else:
 			# Expand.
 			if(len(Leaf.children) == 0):
-<<<<<<< Updated upstream
-				EvalChildNodes(Leaf)
-			Child = SelectChildNode(Leaf)
-			
-	def IsTerminal(Node):
-		# TO-DO: Evaluate if node is terminal.
-		return False
+				Children = self.EvalChildren(Leaf)
+				for NewChild in Children:
+					if(np.all(NewChild.state == Leaf.state)):
+						continue
+					Leaf.AppendChild(NewChild)
+			Child = self.SelectChildNode(Leaf)
 
- 	def EvalChildNodes(Node):
-		# TO-DO: Evaluate child nodes.
-	
-	def SelectChildNode(Node):
-		# Randomly selects a child node.
-		Len = len(Node.children)
-		i = np.random.randint(0, Len)
-		return Node.children[i]
-
-	def Simulation(Node):
-		CurrentState = Node.state
-		
-		# TO-DO: Perform simulation.
-		while(!IsTerminal(CurrentState)):
-			A = GetActions(CurrentState)
-			# Get random action.
-			(m, n) = A.shape                                             
-			i = np.random.randint(0, m)
-			Action = A[i, :]
-			CurrentState = ApplyAction(CurrentState, Action)
-		
-		return Result
-	
-	def Backpropagation(Node, Result):
-		# TO-DO: Update Node's weight.
- 		CurrentNode = Node
-
-		while(HasParent(Node)):
-			# TO-DO: Update parent node's weight.
-			CurrentNode = Node.parent
-	
-	def HasParent(Node):
-		Parent = Node.parent
-		if(Parent == None):
-			HasParent = False
-		else:
-			HasParent = True
+		print "Expanded: ", Child.state
+		return Child
 			
-	def Run(MaxIter = 1000):
-		for i in MaxIter:
-			X = Selection()
-			Y = Expansion(S)
-			Result = Simulation(Y)
-			Backpropagation(Y, Result)
-			# TO-DO: Break in case no updates to tree before MaxIter reached.
-=======
-				Children = EvalChildren(Leaf)
-				Leaf.children = Children
-			Child = SelectChildNode(Leaf)
-			
-	def IsTerminal(Node):
+	def IsTerminal(self, Node):
 		# Evaluate if node is terminal.
-		if(tg.IsTerminal(Node.state)):
+		if(game.IsTerminal(Node.state)):
 			return True	
 		else:
 			return False
 		return False
->>>>>>> Stashed changes
 
- 	def EvalChildren(Node):
+ 	def EvalChildren(self, Node):
 		# Evaluate child nodes.
-		A = GetActions(CurrentState.state)
+		A = game.GetActions(Node.state)
 		Children = []
-		for i in len(A[:,0]):
+		for i in range(len(A[:,0])):
 			Action = A[i,:]
-			ChildState = ApplyAction(Node.state, Action)
-			ChildNode = Node(ChildState)
+			ChildState = game.ApplyAction(Node.state, Action)
+			ChildNode = nd.Node(ChildState)
 			Children.append(ChildNode)
 
 		return Children
 
-	def SelectChildNode(Node):
+	def SelectChildNode(self, Node):
 		# Randomly selects a child node.
 		Len = len(Node.children)
 		i = np.random.randint(0, Len)
 		return Node.children[i]
 
-	def Simulation(Node):
+	def Simulation(self, Node):
+		if(Node == None):
+			return None
+
 		CurrentState = Node.state
-		
+		if(CurrentState == None):
+			return None
+
 		# Perform simulation.
-		while(not(IsTerminal(CurrentState))):
-			A = GetActions(CurrentState)
+		while(not(game.IsTerminal(CurrentState))):
+			A = game.GetActions(CurrentState)
+			if(A == None):
+				return False
 			# Get random action.
 			(m, n) = A.shape                                             
 			i = np.random.randint(0, m)
 			Action = A[i, :]
-			CurrentState = ApplyAction(CurrentState, Action)
+			CurrentState = game.ApplyAction(CurrentState, Action)
+			print "Action:", Action, "CurrentState:", CurrentState
 		
+		Result = 1.0
+		print "Result:", Result
 		return Result
 	
-	def Backpropagation(Node, Result):
-		# TO-DO: Update Node's weight.
+	def Backpropagation(self, Node, Result):
+		# Update Node's weight.
  		CurrentNode = Node
+		CurrentNode.wins += Result
 
-		while(HasParent(Node)):
-			# TO-DO: Update parent node's weight.
-			CurrentNode = Node.parent
+		while(self.HasParent(CurrentNode)):
+			# Update parent node's weight.
+			CurrentNode = CurrentNode.parent
+			CurrentNode.wins += Result
+
 	
-	def HasParent(Node):
-		Parent = Node.parent
-		if(Parent == None):
-			HasParent = False
+	def HasParent(self, Node):
+		if(Node.parent == None):
+			return False
 		else:
-			HasParent = True
+			return True
 			
-	def EvalUTC(Node):
+	def EvalUTC(self, Node):
 		c = np.sqrt(2)
-				
-	def Run(MaxIter = 1000):
-		for i in MaxIter:
-			X = Selection()
-			Y = Expansion(S)
-			Result = Simulation(Y)
-			Backpropagation(Y, Result)
-			# TO-DO: Break in case no updates to tree before MaxIter reached.
+		w = Node.wins
+		n = Node.visits
+		if(Node.parent == None):
+			t = Node.visits
+		else:
+			t = Node.parent.visits
+
+		return w/n + c * np.sqrt(np.log(t)/n)
+
+	def Run(self, MaxIter = 100):
+		for i in range(MaxIter):
+			X = self.Selection()
+			Y = self.Expansion(X)
+			Result = self.Simulation(Y)
+			#if(Result == None):
+			#	break
+			self.Backpropagation(Y, Result)
