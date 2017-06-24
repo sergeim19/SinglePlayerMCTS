@@ -1,7 +1,8 @@
 class Node:
     def __init__(self, state):
         self.state = state
-        self.weight = None
+        self.value = 0.0
+        self.visits = 0.0
         self.parent = None
         self.children = []
     
