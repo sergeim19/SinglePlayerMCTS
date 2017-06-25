@@ -20,18 +20,21 @@ class MCTS:
 		Skip = False
 		while(HasChild and not Skip):
 			MaxWeight = 0.0
-
+			print "Next Level"
+			# Select child that has 0 visits first.
 			for Child in SelectedChild.children:
 				if(Child.visits > 0.0):
 					continue
 				else:
 					SelectedChild = Child
 					Skip = True
+					print "Considered child", SelectedChild.state, "UTC: inf", 
 					break
 
 			if(not Skip):
 				for Child in SelectedChild.children:
 						Weight = self.EvalUTC(Child)
+						print "Considered child:", Child.state, "UTC:", Weight
 						if(Weight > MaxWeight):
 							MaxWeight = Weight			
 							SelectedChild = Child
@@ -40,13 +43,15 @@ class MCTS:
 			if(len(SelectedChild.children) == 0):
 				HasChild  = False
 
-		print "Selected:",SelectedChild.state
-		SelectedChild.visits += 1.0
+			SelectedChild.visits += 1.0
+
+		print "\nSelected:", SelectedChild.state
+		self.root.visits += 1.0
 		return SelectedChild
 	
 	def Expansion(self, Leaf):
 		if(self.IsTerminal((Leaf))):
-			return Leaf
+			return False
 		else:
 			# Expand.
 			if(len(Leaf.children) == 0):
@@ -87,24 +92,22 @@ class MCTS:
 		return Node.children[i]
 
 	def Simulation(self, Node):
-		if(Node == None):
-			return None
-
 		CurrentState = Node.state
-		if(CurrentState == None):
-			return None
+		#if(any(CurrentState) == False):
+		#	return None
 
+		print "Begin Simulation"
 		# Perform simulation.
 		while(not(game.IsTerminal(CurrentState))):
 			A = game.GetActions(CurrentState)
-			if(A == None):
-				return False
+			#if(any(A) == None):
+			#	return False
 			# Get random action.
 			(m, n) = A.shape                                             
 			i = np.random.randint(0, m)
 			Action = A[i, :]
 			CurrentState = game.ApplyAction(CurrentState, Action)
-			print "Action:", Action, "CurrentState:", CurrentState
+			print "Action:", Action, "\nCurrentState:", CurrentState
 		
 		Result = 1.0
 		print "Result:", Result
@@ -120,6 +123,7 @@ class MCTS:
 			CurrentNode = CurrentNode.parent
 			CurrentNode.wins += Result
 
+		self.root.wins += Result
 	
 	def HasParent(self, Node):
 		if(Node.parent == None):
@@ -128,7 +132,8 @@ class MCTS:
 			return True
 			
 	def EvalUTC(self, Node):
-		c = np.sqrt(2)
+		#c = np.sqrt(2)
+		c = 1
 		w = Node.wins
 		n = Node.visits
 		if(Node.parent == None):
@@ -136,13 +141,16 @@ class MCTS:
 		else:
 			t = Node.parent.visits
 
-		return w/n + c * np.sqrt(np.log(t)/n)
+		UTC = w/n + c * np.sqrt(np.log(t)/n)
+		D = 20000
+		Correction = np.sqrt((w - n * (w/n)**2 + D)/n)
+		return UTC + Correction
 
-	def Run(self, MaxIter = 100):
+	def Run(self, MaxIter = 1000):
 		for i in range(MaxIter):
+			print "\n===== Begin iteration:", i, "====="
 			X = self.Selection()
 			Y = self.Expansion(X)
-			Result = self.Simulation(Y)
-			#if(Result == None):
-			#	break
-			self.Backpropagation(Y, Result)
+			if(Y):
+				Result = self.Simulation(Y)
+				self.Backpropagation(Y, Result)

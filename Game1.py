@@ -5,12 +5,15 @@ import itertools as iter
 def GetActions(State):
 	# Get the possible actions given a state.
 	N = (int)(np.sum(State))
-	
-	if(State == None):
+
+	if(any(State) == None):
 		return None
 
 	# Get matrix of possible actions.
-	A = np.array(list(iter.product([0, 1], repeat = N)))	
+	A = np.array(list(iter.product([0, 1], repeat = N)))
+	if(len(A) > 0):
+		A = np.delete(A, 0, 0)
+	# Remove no action.
 	AToS = MapActionsToState(State, A)
 
 	return AToS
