@@ -11,10 +11,16 @@ def GetActions(State):
 
 	# Get matrix of possible actions.
 	A = np.array(list(iter.product([0, 1], repeat = N)))
+
+	AToS = MapActionsToState(State, A)
+
+	#print "Before Illegal:", AToS
+	AToS = RemoveIllegalActions(AToS)
+	#print "After Illegal:", AToS
+
+	# Remove no action.
 	if(len(A) > 0):
 		A = np.delete(A, 0, 0)
-	# Remove no action.
-	AToS = MapActionsToState(State, A)
 
 	return AToS
 
@@ -34,16 +40,32 @@ def MapActionsToState(State, A):
 				else:
 					a += 1
 
-	# for i in range(m):
-	# 	a = 0
-	# 	print "State:", State
-	# 	print "Action:", A[i, :]
-	# 	for j in range(len(State)):
-	# 		if(State[j] and A[i, a]):
-	# 			AToS[i, j] = 1
-	# 			a += 1
-	# 	print "AToS:", AToS[i,:]
 	return AToS
+
+def RemoveIllegalActions(Actions):
+	(m, n) = Actions.shape
+	
+	IllegalActions = np.array([[1.,1.,1.,1.],
+		[1.,1.,0.,0.],
+		[0.,0.,1.,1.],
+		[1.,1.,0.,1.],
+		[1.,0.,1.,1.],
+		[0.,1.,1.,1.],
+		[1.,1.,1.,0.]])
+
+	(p, q) = IllegalActions.shape
+
+	ActionsAfter = np.array([[0.,0.,0.,0.]])
+	for i in range(m):
+		Illegal = False
+		for j in range(p):
+			if(all(Actions[i,:] == IllegalActions[j,:])):
+				Illegal = True
+				break
+		if(not Illegal):
+			ActionsAfter = np.vstack([ActionsAfter, Actions[i,:]])
+
+	return ActionsAfter
 
 def ApplyAction(State1, Action):
 	State2 = State1 - Action
