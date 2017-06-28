@@ -50,6 +50,8 @@ class MCTS:
 	def Expansion(self, Leaf):
 		if(self.IsTerminal((Leaf))):
 			return False
+		elif(Leaf.visits == 0):
+			return Leaf
 		else:
 			# Expand.
 			if(len(Leaf.children) == 0):
@@ -182,7 +184,7 @@ class MCTS:
 		for Child in Node.children:
 			self.PrintNode(file, Child, Indent, self.IsTerminal(Child))
 			
-	def Run(self, MaxIter = 500):
+	def Run(self, MaxIter = 100):
 		for i in range(MaxIter):
 			print "\n===== Begin iteration:", i, "====="
 			X = self.Selection()
@@ -190,3 +192,7 @@ class MCTS:
 			if(Y):
 				Result = self.Simulation(Y)
 				self.Backpropagation(Y, Result)
+			else:
+				Level = self.GetLevel(X)
+				Result = 1.0/Level
+				self.Backpropagation(X, Result)
