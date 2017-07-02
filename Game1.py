@@ -2,6 +2,16 @@ import numpy as np
 import itertools as iter
 
 #---Customize to specific use case.---#
+def GetNextState(State):
+	A = self.GetActions(State)
+	# Get random action.
+	(m, n) = A.shape                                            
+	i = np.random.randint(0, m)
+	Action = A[i, :]
+	NextState = self.ApplyAction(State, Action)
+
+	return NextState
+	
 def GetActions(State):
 	# Get the possible actions given a state.
 	N = (int)(np.sum(State))
