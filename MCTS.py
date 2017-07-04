@@ -11,7 +11,7 @@ class MCTS:
 		SelectedChild = self.root
 		HasChild = False
 
-		# Check if child nodes exist. 
+		# Check if child nodes exist.
 		if(len(SelectedChild.children) > 0):
 			HasChild = True
 		else:
@@ -23,8 +23,9 @@ class MCTS:
 				HasChild  = False
 			#SelectedChild.visits += 1.0
 
-		if(self.verbose):	
-			print "\nSelected:", SelectedChild.state.bins
+		if(self.verbose):
+			#print "\nSelected:", SelectedChild.state.bins
+			print "\nSelected: ", game.GetStateRepresentation(SelectedChild.state)
 		#self.root.visits += 1.0
 
 		return SelectedChild
@@ -38,20 +39,20 @@ class MCTS:
 				continue
 			else:
 				if(self.verbose):
-					print "Considered child", Child.state, "UTC: inf", 
+					print "Considered child", game.GetStateRepresentation(Child.state), "UTC: inf",
 				return Child
 
 		MaxWeight = 0.0
 		for Child in Node.children:
 			Weight = self.EvalUTC(Child)
 			if(self.verbose):
-				print "Considered child:", Child.state.bins, "UTC:", Weight
+				print "Considered child:", game.GetStateRepresentation(Child.state), "UTC:", Weight, "People Left:", Child.state.peopleIDs
 			if(Weight > MaxWeight):
-				MaxWeight = Weight			
+				MaxWeight = Weight
 				SelectedChild = Child
 		return SelectedChild
-		
-	def Expansion(self, Leaf):		
+
+	def Expansion(self, Leaf):
 		if(self.IsTerminal((Leaf))):
 			return False
 		elif(Leaf.visits == 0):
@@ -68,35 +69,24 @@ class MCTS:
 			Child = self.SelectChildNode(Leaf)
 
 		if(self.verbose):
-			print "Expanded: ", Child.state.bins
+			print "Expanded: ", game.GetStateRepresentation(Child.state)
 		return Child
-			
+
 	def IsTerminal(self, Node):
 		# Evaluate if node is terminal.
 		if(game.IsTerminal(Node.state)):
-			return True	
+			return True
 		else:
 			return False
-		return False
+		return False # Why is this here?
 
  	def EvalChildren(self, Node):
-		# Evaluate child nodes.
-		A = game.GetActions(Node.state)
-		Children = []
-		#for i in range(len(A[:,0])):
-		for i in range(len(A)):
-			#Action = A[i,:]
-			Action = A[i]
-			ChildState = game.ApplyAction(Node.state, Action)
-			ChildNode = nd.Node(ChildState)
-			Children.append(ChildNode)
+ 		NextStates = game.EvalNextStates(Node.state)
+ 		Children = []
+ 		for State in NextStates:
+ 			ChildNode = nd.Node(State)
+ 			Children.append(ChildNode)
 
-		#Game specific
-		if(A == []):
-			ChildState = game.ApplyAction(Node.state, A)
-			ChildNode = nd.Node(ChildState)
-			Children.append(ChildNode)
-		
 		return Children
 
 	def SelectChildNode(self, Node):
@@ -119,14 +109,23 @@ class MCTS:
 			CurrentState = game.GetNextState(CurrentState)
 			Level += 1.0
 			if(self.verbose):
-				print "CurrentState:", CurrentState.bins
-		
-		#Result = 1.0 / Level # Game specific
+				print "CurrentState:", game.GetStateRepresentation(CurrentState)
+
+		#--- Game specific ---#
 		Result = 100.0 / len(CurrentState.bins)
+		# if(game.CheckStateInterference(CurrentState)):
+		# 	Result = 0.0
+		# else:
+		# 	#avgLen = 0.0
+		# 	#for Table in CurrentState.tables:
+		# 	#	avgLen += len(Table)
+		# 	#avgLen /= len(CurrentState.tables)
+		# 	1000.0 / len(CurrentState.tables) + 1000.0/(len(CurrentState.peopleIDs) + 1)
+
 		if(self.verbose):
 			print "Result:", Result
 		return Result
-	
+
 	def Backpropagation(self, Node, Result):
 		# Update Node's weight.
  		CurrentNode = Node
@@ -135,7 +134,6 @@ class MCTS:
 		CurrentNode.visits += 1
 
 		while(self.HasParent(CurrentNode)):
-			print "Update Parent:", CurrentNode.parent.state.bins
 			# Update parent node's weight.
 			CurrentNode = CurrentNode.parent
 			CurrentNode.wins += Result
@@ -143,13 +141,13 @@ class MCTS:
 			CurrentNode.visits += 1
 
 		self.root.wins += Result
-	
+
 	def HasParent(self, Node):
 		if(Node.parent == None):
 			return False
 		else:
 			return True
-			
+
 	def EvalUTC(self, Node):
 		#c = np.sqrt(2)
 		c = 0.1
@@ -162,7 +160,7 @@ class MCTS:
 			t = Node.parent.visits
 
 		UTC = w/n + c * np.sqrt(np.log(t)/n)
-		D = 32.
+		D = 1000.
 		Correction = np.sqrt((sumsq - n * (w/n)**2 + D)/n)
 		Node.sputc = UTC + Correction
 		return Node.sputc
@@ -191,15 +189,15 @@ class MCTS:
 
 		string = str(self.GetLevel(Node)) + ") (["
 		# for i in Node.state.bins: # game specific (scrap)
-		# 	string += str(i) + ", " 
-		string += str(Node.state.bins)#game specific (bins)
+		# 	string += str(i) + ", "
+		string += str(game.GetStateRepresentation(Node.state))
 		string += "], W: " + str(Node.wins) + ", N: " + str(Node.visits) + ", UTC: " + str(Node.sputc) + ") \n"
 		file.write(string)
 
 		for Child in Node.children:
 			self.PrintNode(file, Child, Indent, self.IsTerminal(Child))
-			
-	def Run(self, MaxIter = 1000):
+
+	def Run(self, MaxIter = 30000):
 		for i in range(MaxIter):
 			if(self.verbose):
 				print "\n===== Begin iteration:", i, "====="
@@ -209,9 +207,17 @@ class MCTS:
 				Result = self.Simulation(Y)
 				self.Backpropagation(Y, Result)
 			else:
-				#Level = self.GetLevel(X) # Game specific
-				#Result = 1.0/Level
-				Result = 100.0/len(X.state.bins)
+				#--- Game specific ---#
+				Result = 100.0 / len(X.state.bins)
+				# if(game.CheckStateInterference(X.state)):
+				# 	Result = 0.0
+				# else:
+				# 	#avgLen = 0.0
+				# 	#for Table in CurrentState.tables:
+				# 	#	avgLen += len(Table)
+				# 	#avgLen /= len(CurrentState.tables)
+				# 	Result = 1000.0 / len(CurrentState.tables) + 1000.0/(len(CurrentState.peopleIDs) + 1)# + 10.0 * avgLen
+
 				if(self.verbose):
 					print "Result: ", Result
 				self.Backpropagation(X, Result)
