@@ -46,7 +46,7 @@ class MCTS:
 		for Child in Node.children:
 			Weight = self.EvalUTC(Child)
 			if(self.verbose):
-				print "Considered child:", game.GetStateRepresentation(Child.state), "UTC:", Weight, "People Left:", Child.state.peopleIDs
+				print "Considered child:", game.GetStateRepresentation(Child.state), "UTC:", Weight
 			if(Weight > MaxWeight):
 				MaxWeight = Weight
 				SelectedChild = Child
