@@ -1,12 +1,39 @@
+#------------------------------------------------------------------------#
+#
+# Written by sergeim19 (Created June 21, 2017)
+# https://github.com/sergeim19/
+# Last Modified July 7, 2017
+#
+# Description:
+# Single Player Monte Carlo Tree Search implementation.
+# This is a Python implementation of the single player
+# Monte Carlo tree search as described in the paper:
+# https://dke.maastrichtuniversity.nl/m.winands/documents/CGSameGame.pdf
+#
+#------------------------------------------------------------------------#
+
 import Node as nd
 import numpy as np
 import BinPackingGame as game
 
+#------------------------------------------------------------------------#
+# Class for Single Player Monte Carlo Tree Search implementation.
+#------------------------------------------------------------------------#
 class MCTS:
+
+	#-----------------------------------------------------------------------#
+	# Description: Constructor.
+	# Node 	  - Root node of the tree of class Node.
+	# Verbose - True: Print details of search during execution.
+	# 			False: Otherwise
+	#-----------------------------------------------------------------------#
 	def __init__(self, Node, Verbose = False):
 		self.root = Node
 		self.verbose = Verbose
 
+	#-----------------------------------------------------------------------#
+	# Description: Performs selection phase of the MCTS.
+	#-----------------------------------------------------------------------#
 	def Selection(self):
 		SelectedChild = self.root
 		HasChild = False
@@ -24,12 +51,16 @@ class MCTS:
 			#SelectedChild.visits += 1.0
 
 		if(self.verbose):
-			#print "\nSelected:", SelectedChild.state.bins
 			print "\nSelected: ", game.GetStateRepresentation(SelectedChild.state)
-		#self.root.visits += 1.0
 
 		return SelectedChild
 
+	#-----------------------------------------------------------------------#
+	# Description:
+	#	Given a Node, selects the first unvisited child Node, or if all
+	# 	children are visited, selects the Node with greatest UTC value.
+	# Node	- Node from which to select child Node from.
+	#-----------------------------------------------------------------------#
 	def SelectChild(self, Node):
 		if(len(Node.children) == 0):
 			return Node
@@ -52,6 +83,10 @@ class MCTS:
 				SelectedChild = Child
 		return SelectedChild
 
+	#-----------------------------------------------------------------------#
+	# Description: Performs expansion phase of the MCTS.
+	# Leaf	- Leaf Node to expand.
+	#-----------------------------------------------------------------------#
 	def Expansion(self, Leaf):
 		if(self.IsTerminal((Leaf))):
 			return False
@@ -72,6 +107,10 @@ class MCTS:
 			print "Expanded: ", game.GetStateRepresentation(Child.state)
 		return Child
 
+	#-----------------------------------------------------------------------#
+	# Description: Checks if a Node is terminal (it has no more children).
+	# Node	- Node to check.
+	#-----------------------------------------------------------------------#
 	def IsTerminal(self, Node):
 		# Evaluate if node is terminal.
 		if(game.IsTerminal(Node.state)):
@@ -80,6 +119,12 @@ class MCTS:
 			return False
 		return False # Why is this here?
 
+	#-----------------------------------------------------------------------#
+	# Description:
+	#	Evaluates all the possible children states given a Node state
+	#	and returns the possible children Nodes.
+	# Node	- Node from which to evaluate children.
+	#-----------------------------------------------------------------------#
  	def EvalChildren(self, Node):
  		NextStates = game.EvalNextStates(Node.state)
  		Children = []
@@ -89,6 +134,11 @@ class MCTS:
 
 		return Children
 
+	#-----------------------------------------------------------------------#
+	# Description:
+	#	Selects a child node randomly.
+	# Node	- Node from which to select a random child.
+	#-----------------------------------------------------------------------#
 	def SelectChildNode(self, Node):
 		# Randomly selects a child node.
 		Len = len(Node.children)
@@ -96,6 +146,11 @@ class MCTS:
 		i = np.random.randint(0, Len)
 		return Node.children[i]
 
+	#-----------------------------------------------------------------------#
+	# Description:
+	#	Performs the simulation phase of the MCTS.
+	# Node	- Node from which to perform simulation.
+	#-----------------------------------------------------------------------#
 	def Simulation(self, Node):
 		CurrentState = Node.state
 		#if(any(CurrentState) == False):
@@ -111,7 +166,7 @@ class MCTS:
 			if(self.verbose):
 				print "CurrentState:", game.GetStateRepresentation(CurrentState)
 
-		#--- Game specific ---#
+		#--- Result: Game specific ---#
 		Result = 100.0 / len(CurrentState.bins)
 		# if(game.CheckStateInterference(CurrentState)):
 		# 	Result = 0.0
@@ -126,6 +181,12 @@ class MCTS:
 			print "Result:", Result
 		return Result
 
+	#-----------------------------------------------------------------------#
+	# Description:
+	#	Performs the backpropagation phase of the MCTS.
+	# Node		- Node from which to perform Backpropagation.
+	# Result	- Result of the simulation performed at Node.
+	#-----------------------------------------------------------------------#
 	def Backpropagation(self, Node, Result):
 		# Update Node's weight.
  		CurrentNode = Node
@@ -142,12 +203,23 @@ class MCTS:
 
 		self.root.wins += Result
 
+	#-----------------------------------------------------------------------#
+	# Description:
+	#	Checks if Node has a parent..
+	# Node - Node to check.
+	#-----------------------------------------------------------------------#
 	def HasParent(self, Node):
 		if(Node.parent == None):
 			return False
 		else:
 			return True
 
+	#-----------------------------------------------------------------------#
+	# Description:
+	#	Evaluates the Single Player modified UTC. See:
+	#	https://dke.maastrichtuniversity.nl/m.winands/documents/CGSameGame.pdf
+	# Node - Node to evaluate.
+	#-----------------------------------------------------------------------#
 	def EvalUTC(self, Node):
 		#c = np.sqrt(2)
 		c = 0.1
@@ -161,10 +233,15 @@ class MCTS:
 
 		UTC = w/n + c * np.sqrt(np.log(t)/n)
 		D = 1000.
-		Correction = np.sqrt((sumsq - n * (w/n)**2 + D)/n)
-		Node.sputc = UTC + Correction
+		Modification = np.sqrt((sumsq - n * (w/n)**2 + D)/n)
+		Node.sputc = UTC + Modification
 		return Node.sputc
 
+	#-----------------------------------------------------------------------#
+	# Description:
+	#	Gets the level of the node in the tree.
+	# Node - Node to evaluate the level.
+	#-----------------------------------------------------------------------#
 	def GetLevel(self, Node):
 		Level = 0.0
 		while(Node.parent):
@@ -172,12 +249,23 @@ class MCTS:
 			Node = Node.parent
 		return Level
 
+	#-----------------------------------------------------------------------#
+	# Description:
+	#	Prints the tree to file.
+	#-----------------------------------------------------------------------#
 	def PrintTree(self):
 		f = open('Tree.txt', 'w')
 		Node = self.root
 		self.PrintNode(f, Node, "", False)
 		f.close()
 
+	#-----------------------------------------------------------------------#
+	# Description:
+	#	Prints the tree Node and its details to file.
+	# Node			- Node to print.
+	# Indent		- Indent character.
+	# IsTerminal	- True: Node is terminal. False: Otherwise.
+	#-----------------------------------------------------------------------#
 	def PrintNode(self, file, Node, Indent, IsTerminal):
 		file.write(Indent)
 		if(IsTerminal):
@@ -197,6 +285,11 @@ class MCTS:
 		for Child in Node.children:
 			self.PrintNode(file, Child, Indent, self.IsTerminal(Child))
 
+	#-----------------------------------------------------------------------#
+	# Description:
+	#	Runs the SP-MCTS.
+	# MaxIter	- Maximum iterations to run the search algorithm.
+	#-----------------------------------------------------------------------#
 	def Run(self, MaxIter = 30000):
 		for i in range(MaxIter):
 			if(self.verbose):
@@ -207,7 +300,7 @@ class MCTS:
 				Result = self.Simulation(Y)
 				self.Backpropagation(Y, Result)
 			else:
-				#--- Game specific ---#
+				#--- Result: Game specific ---#
 				Result = 100.0 / len(X.state.bins)
 				# if(game.CheckStateInterference(X.state)):
 				# 	Result = 0.0
