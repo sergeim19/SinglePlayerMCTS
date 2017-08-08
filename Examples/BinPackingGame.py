@@ -72,3 +72,9 @@ def EvalNextStates(CurrentState):
 		NextStates.append(NextState)
 
 	return NextStates
+
+def GetResult(CurrentState):
+	#Opt = 511.0/MAX_VOLUME
+	Opt = 5.0
+	return 5000.0 * Opt/len(CurrentState.bins)
+	#return 1.0/len(CurrentState.bins)

@@ -2,7 +2,7 @@
 #
 # Written by sergeim19 (Created June 21, 2017)
 # https://github.com/sergeim19/
-# Last Modified July 7, 2017
+# Last Modified Aug 7, 2017
 #
 # Description:
 # Single Player Monte Carlo Tree Search implementation.
@@ -14,7 +14,9 @@
 
 import Node as nd
 import numpy as np
+# Import your game implementation here.
 import BinPackingGame as game
+#import TableDistributionGame as game
 
 #------------------------------------------------------------------------#
 # Class for Single Player Monte Carlo Tree Search implementation.
@@ -75,7 +77,8 @@ class MCTS:
 
 		MaxWeight = 0.0
 		for Child in Node.children:
-			Weight = self.EvalUTC(Child)
+			#Weight = self.EvalUTC(Child)
+			Weight = Child.sputc
 			if(self.verbose):
 				print "Considered child:", game.GetStateRepresentation(Child.state), "UTC:", Weight
 			if(Weight > MaxWeight):
@@ -166,19 +169,7 @@ class MCTS:
 			if(self.verbose):
 				print "CurrentState:", game.GetStateRepresentation(CurrentState)
 
-		#--- Result: Game specific ---#
-		Result = 100.0 / len(CurrentState.bins)
-		# if(game.CheckStateInterference(CurrentState)):
-		# 	Result = 0.0
-		# else:
-		# 	#avgLen = 0.0
-		# 	#for Table in CurrentState.tables:
-		# 	#	avgLen += len(Table)
-		# 	#avgLen /= len(CurrentState.tables)
-		# 	1000.0 / len(CurrentState.tables) + 1000.0/(len(CurrentState.peopleIDs) + 1)
-
-		if(self.verbose):
-			print "Result:", Result
+		Result = game.GetResult(CurrentState)
 		return Result
 
 	#-----------------------------------------------------------------------#
@@ -193,6 +184,7 @@ class MCTS:
 		CurrentNode.wins += Result
 		CurrentNode.ressq += Result**2
 		CurrentNode.visits += 1
+		self.EvalUTC(CurrentNode)
 
 		while(self.HasParent(CurrentNode)):
 			# Update parent node's weight.
@@ -200,8 +192,11 @@ class MCTS:
 			CurrentNode.wins += Result
 			CurrentNode.ressq += Result**2
 			CurrentNode.visits += 1
-
-		self.root.wins += Result
+			self.EvalUTC(CurrentNode)
+		# self.root.wins += Result
+		# self.root.ressq += Result**2
+		# self.root.visits += 1
+		# self.EvalUTC(self.root)
 
 	#-----------------------------------------------------------------------#
 	# Description:
@@ -232,8 +227,10 @@ class MCTS:
 			t = Node.parent.visits
 
 		UTC = w/n + c * np.sqrt(np.log(t)/n)
-		D = 1000.
+		D = 32.
 		Modification = np.sqrt((sumsq - n * (w/n)**2 + D)/n)
+		#print "Original", UTC
+		#print "Mod", Modification
 		Node.sputc = UTC + Modification
 		return Node.sputc
 
@@ -290,7 +287,7 @@ class MCTS:
 	#	Runs the SP-MCTS.
 	# MaxIter	- Maximum iterations to run the search algorithm.
 	#-----------------------------------------------------------------------#
-	def Run(self, MaxIter = 30000):
+	def Run(self, MaxIter = 1000):
 		for i in range(MaxIter):
 			if(self.verbose):
 				print "\n===== Begin iteration:", i, "====="
@@ -298,19 +295,13 @@ class MCTS:
 			Y = self.Expansion(X)
 			if(Y):
 				Result = self.Simulation(Y)
+				if(self.verbose):
+					print "Result: ", Result
 				self.Backpropagation(Y, Result)
 			else:
-				#--- Result: Game specific ---#
-				Result = 100.0 / len(X.state.bins)
-				# if(game.CheckStateInterference(X.state)):
-				# 	Result = 0.0
-				# else:
-				# 	#avgLen = 0.0
-				# 	#for Table in CurrentState.tables:
-				# 	#	avgLen += len(Table)
-				# 	#avgLen /= len(CurrentState.tables)
-				# 	Result = 1000.0 / len(CurrentState.tables) + 1000.0/(len(CurrentState.peopleIDs) + 1)# + 10.0 * avgLen
-
+				Result = game.GetResult(X.state)
 				if(self.verbose):
 					print "Result: ", Result
 				self.Backpropagation(X, Result)
+		print "Final Solution found."
+		print "Iterations:", i
