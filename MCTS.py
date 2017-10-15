@@ -14,9 +14,9 @@
 
 import Node as nd
 import numpy as np
+import os
 # Import your game implementation here.
 import BinPackingGame as game
-#import TableDistributionGame as game
 
 #------------------------------------------------------------------------#
 # Class for Single Player Monte Carlo Tree Search implementation.
@@ -92,6 +92,7 @@ class MCTS:
 	#-----------------------------------------------------------------------#
 	def Expansion(self, Leaf):
 		if(self.IsTerminal((Leaf))):
+			print "Is Terminal."
 			return False
 		elif(Leaf.visits == 0):
 			return Leaf
@@ -120,7 +121,7 @@ class MCTS:
 			return True
 		else:
 			return False
-		return False # Why is this here?
+		#return False # Why is this here?
 
 	#-----------------------------------------------------------------------#
 	# Description:
@@ -168,6 +169,7 @@ class MCTS:
 			Level += 1.0
 			if(self.verbose):
 				print "CurrentState:", game.GetStateRepresentation(CurrentState)
+				game.PrintTablesScores(CurrentState)
 
 		Result = game.GetResult(CurrentState)
 		return Result
@@ -217,7 +219,7 @@ class MCTS:
 	#-----------------------------------------------------------------------#
 	def EvalUTC(self, Node):
 		#c = np.sqrt(2)
-		c = 0.1
+		c = 0.5
 		w = Node.wins
 		n = Node.visits
 		sumsq = Node.ressq
@@ -227,7 +229,7 @@ class MCTS:
 			t = Node.parent.visits
 
 		UTC = w/n + c * np.sqrt(np.log(t)/n)
-		D = 32.
+		D = 10000.
 		Modification = np.sqrt((sumsq - n * (w/n)**2 + D)/n)
 		#print "Original", UTC
 		#print "Mod", Modification
@@ -282,12 +284,23 @@ class MCTS:
 		for Child in Node.children:
 			self.PrintNode(file, Child, Indent, self.IsTerminal(Child))
 
+	def PrintResult(self, Result):
+		filename = 'Results.txt'
+		if os.path.exists(filename):
+			append_write = 'a' # append if already exists
+		else:
+			append_write = 'w' # make a new file if not
+
+		f = open(filename, append_write)
+		f.write(str(Result) + '\n')
+		f.close()
+
 	#-----------------------------------------------------------------------#
 	# Description:
 	#	Runs the SP-MCTS.
 	# MaxIter	- Maximum iterations to run the search algorithm.
 	#-----------------------------------------------------------------------#
-	def Run(self, MaxIter = 1000):
+	def Run(self, MaxIter = 5000):
 		for i in range(MaxIter):
 			if(self.verbose):
 				print "\n===== Begin iteration:", i, "====="
@@ -303,5 +316,7 @@ class MCTS:
 				if(self.verbose):
 					print "Result: ", Result
 				self.Backpropagation(X, Result)
-		print "Final Solution found."
+			self.PrintResult(Result)
+
+		print "Search complete."
 		print "Iterations:", i
